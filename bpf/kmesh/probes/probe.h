@@ -58,6 +58,8 @@ static inline void observe_on_connect_established(struct bpf_sock *sk, __u64 soc
     storage->direction = direction;
     storage->connect_success = true;
     storage->sock_cookie = sock_cookie;
+    bpf_printk("Storage address: %px", storage);
+
     record_report_tcp_conn_info(sk, tcp_sock, storage, BPF_TCP_ESTABLISHED);
 }
 
@@ -137,6 +139,7 @@ static inline void observe_on_rtt(struct bpf_sock *sk)
 
 static inline void observe_on_send(struct bpf_sock *sk, __u32 size)
 {
+    bpf_printk("observing on send");
     if (!is_monitoring_enable()) {
         return;
     }
