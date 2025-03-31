@@ -30,8 +30,8 @@ enum bpf_loglevel {
 
 #define GET_SKOPS_LOCAL_PORT(sk_ops) (__u16)((sk_ops)->local_port)
 
-#ifndef bpf_printk
-#define bpf_printk(fmt, ...)                                                                                           \
+#ifndef bpf_trace_printk
+#define bpf_trace_printk(fmt, ...)                                                                                           \
     ({                                                                                                                 \
         char ____fmt[] = fmt;                                                                                          \
         bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__);                                                     \
@@ -41,7 +41,7 @@ enum bpf_loglevel {
 #define bpf_log(l, f, ...)                                                                                             \
     do {                                                                                                               \
         if (BPF_LOG_##l <= BPF_LOGLEVEL)                                                                               \
-            bpf_printk("[oncn-mda " #l "] " f "", ##__VA_ARGS__);                                                      \
+            bpf_trace_printk("[oncn-mda " #l "] " f "", ##__VA_ARGS__);                                                      \
     } while (0)
 
 #ifndef force_read

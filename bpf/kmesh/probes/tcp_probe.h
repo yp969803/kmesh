@@ -172,6 +172,10 @@ static inline void record_report_tcp_conn_info(
     construct_orig_dst_info(sk, &info_vals);
     __builtin_memcpy(info, &info_vals, sizeof(struct tcp_probe_info));
     bpf_map_update_elem(&map_of_tcp_conns, &storage->sock_cookie, &info_vals, BPF_ANY);
+    bpf_printk("Tcp conn estb");
+
+
+
     bpf_ringbuf_submit(info, 0);
 }
 
@@ -205,6 +209,7 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
 
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
         bpf_map_delete_elem(&map_of_tcp_conns, &storage->sock_cookie);
+        bpf_printk("Tcp conn closed");
         bpf_ringbuf_submit(info, 0);
     }
 }

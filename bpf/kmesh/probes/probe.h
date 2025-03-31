@@ -185,6 +185,7 @@ static inline void report_after_threshold_tm(struct bpf_sock *sk)
         info_vals->last_report_ns = now;
         info_vals->duration = now - info_vals->start_ns;
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
+        bpf_printk("Tcp time send");
         bpf_ringbuf_submit(info, 0);
     }
 }
