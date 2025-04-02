@@ -83,7 +83,6 @@ static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
 
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
-        BPF_LOG(ERR, PROBE, "on status: bpf_sk_storage_get failed\n");
         return;
     }
  

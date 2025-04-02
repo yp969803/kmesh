@@ -170,7 +170,7 @@ int sockops_prog(struct bpf_sock_ops *skops)
     case BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB:
         if (!is_managed_by_kmesh(skops))
             break;
-        bpf_printk("outbound connect established\n");
+        bpf_printk("outbound connect established outbound %llu \n", sock_cookie);
         if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0) {
             BPF_LOG(ERR, SOCKOPS, "set sockops cb failed!\n");
         }
@@ -189,6 +189,7 @@ int sockops_prog(struct bpf_sock_ops *skops)
         if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0) {
             BPF_LOG(ERR, SOCKOPS, "set sockops cb failed!\n");
         }
+        bpf_printk("outbound connect established inbound %llu \n", sock_cookie);
         observe_on_connect_established(skops->sk, sock_cookie, INBOUND);
         
         auth_ip_tuple(skops);
