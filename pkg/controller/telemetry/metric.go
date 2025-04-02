@@ -434,7 +434,7 @@ func buildV4Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 	data.src[0] = connectData.SrcAddr
 	data.dst[0] = connectData.DstAddr
 	fmt.Print("directopn: ", connectData.Direction)
-	data.direction = connectData.Direction
+	data.direction = uint32(2)
 	data.dstPort = connectData.DstPort
 	data.srcPort = connectData.SrcPort
 
@@ -485,7 +485,7 @@ func buildV6Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 	}
 	data.src = connectData.SrcAddr
 	data.dst = connectData.DstAddr
-	data.direction = connectData.Direction
+	data.direction = uint32(2)
 	data.dstPort = connectData.DstPort
 	data.srcPort = connectData.SrcPort
 
