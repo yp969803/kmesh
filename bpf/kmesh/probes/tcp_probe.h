@@ -172,7 +172,7 @@ static inline void record_report_tcp_conn_info(
     construct_orig_dst_info(sk, &info_vals);
     __builtin_memcpy(info, &info_vals, sizeof(struct tcp_probe_info));
     bpf_map_update_elem(&map_of_tcp_conns, &storage->sock_cookie, &info_vals, BPF_ANY);
-    bpf_printk("Tcp conn estb");
+    bpf_printk("updated map with sock_cookie %llu", storage->sock_cookie);
 
 
 
@@ -183,6 +183,7 @@ static inline void
 refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock_storage_data *storage, __u32 state)
 {
     struct tcp_probe_info *info = NULL;
+    bpf_printk("refresh_tcp_conn_info_on_state_change, %llu", storage->sock_cookie);
     struct tcp_probe_info *info_vals = bpf_map_lookup_elem(&map_of_tcp_conns, &storage->sock_cookie);
     if (!info_vals) {
         BPF_LOG(ERR, PROBE, "lookup in map_of_tcp_conns failed\n");
