@@ -171,10 +171,19 @@ static inline void record_report_tcp_conn_info(
 
     construct_orig_dst_info(sk, &info_vals);
     __builtin_memcpy(info, &info_vals, sizeof(struct tcp_probe_info));
-    info_vals.direction = OUTBOUND;
+     
     bpf_map_update_elem(&map_of_tcp_conns, &storage->sock_cookie, &info_vals, BPF_ANY);
-    bpf_printk("updated map with sock_cookie %llu", storage->sock_cookie);
-    info->direction = OUTBOUND;
+    bpf_printk("conn_id %llu", info->conn_id);
+    bpf_printk("send_bytes %u", info->sent_bytes);
+    bpf_printk("recv_bytes %u", info->received_bytes);
+    bpf_printk("duration %llu", info->duration);
+    bpf_printk("srtt_us %u", info->srtt_us);    
+    bpf_printk("rtt_min %u", info->rtt_min);
+    bpf_printk("total_retrans %u", info->total_retrans);
+    bpf_printk("lost_out %u", info->lost_out);
+    bpf_printk("state %u", info->state);
+    bpf_printk("direction %u", info->direction);
+    bpf_printk("conn_success %u", info->conn_success);
     bpf_ringbuf_submit(info, 0);
 }
 
