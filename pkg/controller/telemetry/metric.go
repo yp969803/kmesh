@@ -654,6 +654,7 @@ func (m *MetricController) buildServiceMetric(data *requestMetric) (serviceMetri
 		accesslog.direction = "OUTBOUND"
 	}
 
+	log.Errorf("state ", data.state)
 	accesslog.status = TCP_STATES[data.state]
 	return *trafficLabels, *accesslog
 }

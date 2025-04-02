@@ -87,7 +87,7 @@ func buildAccesslog(data requestMetric, conn_metrics connMetric, accesslog logIn
 	startTime := calculateUptime(osStartTime, data.startTime)
 	startTimeInfo := fmt.Sprintf("%v", startTime)
 	timeInfo := fmt.Sprintf("%v", uptime)
-	sourceInfo := fmt.Sprintf("conn_id=%d, src.addr=%s, src.workload=%s, src.namespace=%s", conn_metrics.connId ,accesslog.sourceAddress, accesslog.sourceWorkload, accesslog.sourceNamespace)
+	sourceInfo := fmt.Sprintf("src.addr=%s, src.workload=%s, src.namespace=%s" ,accesslog.sourceAddress, accesslog.sourceWorkload, accesslog.sourceNamespace)
 	destinationInfo := fmt.Sprintf("dst.addr=%s, dst.service=%s, dst.workload=%s, dst.namespace=%s", accesslog.destinationAddress, accesslog.destinationService, accesslog.destinationWorkload, accesslog.destinationNamespace)
 	connectionInfo := fmt.Sprintf("conn_id=%d start_time=%s, direction=%s, status=%s, sent_bytes=%d, received_bytes=%d, packet_loss=%d, retransmissions=%d, srtt=%dus, min_rtt=%dus, duration=%vms", conn_metrics.connId ,startTimeInfo, accesslog.direction, accesslog.status, conn_metrics.sentBytes, conn_metrics.receivedBytes, conn_metrics.packetLost, conn_metrics.totalRetrans, data.srtt, data.minRtt, (float64(data.duration) / 1000000.0))
 

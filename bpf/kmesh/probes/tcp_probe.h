@@ -163,7 +163,7 @@ static inline void record_report_tcp_conn_info(
     info_vals.rtt_min = tcp_sock->rtt_min;
     info_vals.total_retrans = tcp_sock->total_retrans;
     info_vals.lost_out = tcp_sock->lost_out;
-
+    info_vals.direction = storage->direction;
     info_vals.type = (sk->family == AF_INET) ? IPV4 : IPV6;
     if (is_ipv4_mapped_addr(sk->dst_ip6)) {
         info_vals.type = IPV4;
