@@ -378,10 +378,10 @@ func (m *MetricController) Run(ctx context.Context, mapOfTcpInfo *ebpf.Map) {
 				log.Errorf("ringbuf reader FAILED to read, err: %v", err)
 				continue
 			}
-			// if len(rec.RawSample) != int(unsafe.Sizeof(connectionDataV4{})) {
-			// 	log.Errorf("wrong length %v of a msg, should be %v", len(rec.RawSample), int(unsafe.Sizeof(connectionDataV4{})))
-			// 	continue
-			// }
+			if len(rec.RawSample) != int(unsafe.Sizeof(connectionDataV4{})) {
+				log.Errorf("wrong length %v of a msg, should be %v", len(rec.RawSample), int(unsafe.Sizeof(connectionDataV4{})))
+				continue
+			}
 			connectType := binary.LittleEndian.Uint32(rec.RawSample)
 			originInfo := rec.RawSample[unsafe.Sizeof(connectType):]
 			buf := bytes.NewBuffer(originInfo)
@@ -467,6 +467,7 @@ func buildV4Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 		totalRetrans:  connectData.statistics.Retransmits,
 		packetLost:    connectData.statistics.LostPackets,
 	}
+	
 
 	if data.state == TCP_CLOSTED {
 		delete(tcp_conns, connectData.ConnId)

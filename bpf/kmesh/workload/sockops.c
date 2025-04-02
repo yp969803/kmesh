@@ -162,20 +162,20 @@ int sockops_prog(struct bpf_sock_ops *skops)
     switch (skops->op) {
     case BPF_SOCK_OPS_TCP_CONNECT_CB:
         skops_handle_kmesh_managed_process(skops);
+        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0) {
+            BPF_LOG(ERR, SOCKOPS, "set sockops cb failed!\n");
+        }
         break;
 
     case BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB:
         if (!is_managed_by_kmesh(skops))
             break;
         bpf_printk("outbound connect established\n");
-        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0)
-             BPF_LOG(ERR, SOCKOPS, "set sockops cb failed!\n");
-        observe_on_connect_established(skops->sk, sock_cookie, OUTBOUND);
-        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0
-            || bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_RETRANS_CB_FLAG) != 0
-            || bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_RTT_CB_FLAG) != 0) {
+        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0) {
             BPF_LOG(ERR, SOCKOPS, "set sockops cb failed!\n");
         }
+        observe_on_connect_established(skops->sk, sock_cookie, OUTBOUND);
+        
         __u64 *current_sk = (__u64 *)skops->sk;
         struct bpf_sock_tuple *dst = bpf_map_lookup_elem(&map_of_orig_dst, &current_sk);
         if (dst != NULL)
@@ -186,14 +186,11 @@ int sockops_prog(struct bpf_sock_ops *skops)
         if (!is_managed_by_kmesh(skops) || skip_specific_probe(skops))
             break;
         bpf_printk("inbound connect established\n");
-        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0)
-            BPF_LOG(ERR, SOCKOPS, "set sockops cb failed!\n");
-        observe_on_connect_established(skops->sk, sock_cookie, INBOUND);
-        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0
-            || bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_RETRANS_CB_FLAG) != 0
-            || bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_RTT_CB_FLAG) != 0) {
+        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0) {
             BPF_LOG(ERR, SOCKOPS, "set sockops cb failed!\n");
         }
+        observe_on_connect_established(skops->sk, sock_cookie, INBOUND);
+        
         auth_ip_tuple(skops);
         break;
 
