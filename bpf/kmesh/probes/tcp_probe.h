@@ -154,7 +154,7 @@ static inline void record_report_tcp_conn_info(
     construct_tuple(sk, &info_vals.tuple, storage->direction);
 
     info_vals.state = state;
-    info_vals.direction = OUTBOUND;
+   
     info_vals.duration = now - info->start_ns;
     info_vals.conn_success = storage->connect_success;
     info_vals.sent_bytes = tcp_sock->delivered;
@@ -171,9 +171,10 @@ static inline void record_report_tcp_conn_info(
 
     construct_orig_dst_info(sk, &info_vals);
     __builtin_memcpy(info, &info_vals, sizeof(struct tcp_probe_info));
+    info_vals.direction = OUTBOUND;
     bpf_map_update_elem(&map_of_tcp_conns, &storage->sock_cookie, &info_vals, BPF_ANY);
     bpf_printk("updated map with sock_cookie %llu", storage->sock_cookie);
-
+     info->direction = OUTBOUND;
     bpf_ringbuf_submit(info, 0);
 }
 
