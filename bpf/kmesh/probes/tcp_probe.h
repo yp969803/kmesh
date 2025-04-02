@@ -154,7 +154,7 @@ static inline void record_report_tcp_conn_info(
     construct_tuple(sk, &info_vals.tuple, storage->direction);
 
     info_vals.state = state;
-    info_vals.direction = storage->direction;
+    info_vals.direction = OUTBOUND;
     info_vals.duration = now - info->start_ns;
     info_vals.conn_success = storage->connect_success;
     info_vals.sent_bytes = tcp_sock->delivered;
