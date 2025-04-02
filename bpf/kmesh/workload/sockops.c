@@ -195,24 +195,24 @@ int sockops_prog(struct bpf_sock_ops *skops)
         auth_ip_tuple(skops);
         break;
 
-    case BPF_SOCK_OPS_STATE_CB:
+    // case BPF_SOCK_OPS_STATE_CB:
         
         
-        observe_on_status_change(skops->sk, skops->args[0]);
+    //     observe_on_status_change(skops->sk, skops->args[0]);
         
-        if (skops->args[1] == BPF_TCP_CLOSE) {
-            clean_auth_map(skops);
-            clean_dstinfo_map(skops);
-        }
-        break;
+    //     if (skops->args[1] == BPF_TCP_CLOSE) {
+    //         clean_auth_map(skops);
+    //         clean_dstinfo_map(skops);
+    //     }
+    //     break;
 
-    case BPF_SOCK_OPS_RETRANS_CB:
-        observe_on_retransmit(skops->sk);
-        break;
+    // case BPF_SOCK_OPS_RETRANS_CB:
+    //     observe_on_retransmit(skops->sk);
+    //     break;
 
-    case BPF_SOCK_OPS_RTT_CB:
-        observe_on_rtt(skops->sk);
-        break;
+    // case BPF_SOCK_OPS_RTT_CB:
+    //     observe_on_rtt(skops->sk);
+    //     break;
 
     default:
         break;
