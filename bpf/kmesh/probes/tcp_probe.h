@@ -174,8 +174,6 @@ static inline void record_report_tcp_conn_info(
     bpf_map_update_elem(&map_of_tcp_conns, &storage->sock_cookie, &info_vals, BPF_ANY);
     bpf_printk("updated map with sock_cookie %llu", storage->sock_cookie);
 
-
-
     bpf_ringbuf_submit(info, 0);
 }
 
