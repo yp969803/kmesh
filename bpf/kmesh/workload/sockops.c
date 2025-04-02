@@ -195,7 +195,7 @@ int sockops_prog(struct bpf_sock_ops *skops)
         break;
 
     case BPF_SOCK_OPS_STATE_CB:
-        bpf_printk("sockops state change\n");
+        
         
         observe_on_status_change(skops->sk, skops->args[0]);
         
