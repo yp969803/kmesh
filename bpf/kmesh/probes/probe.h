@@ -53,7 +53,7 @@ static inline void observe_on_connect_established(struct bpf_sock *sk, __u64 soc
     }
 
     // INBOUND scenario
-   
+   bpf_printk("on connect: bpf_sk_storage_get success, %llu", sock_cookie);
     storage->connect_ns = bpf_ktime_get_ns();
     storage->direction = direction;
     storage->connect_success = true;
