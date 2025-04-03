@@ -46,7 +46,7 @@ static inline void observe_on_connect_established(struct bpf_sock *sk, __u64 soc
     if (!tcp_sock)
         return;
 
-    storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, BPF_LOCAL_STORAGE_GET_F_CREATE);
+    storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, flags);
     if (!storage) {
         BPF_LOG(ERR, PROBE, "on connect: bpf_sk_storage_get failed\n");
         return;
