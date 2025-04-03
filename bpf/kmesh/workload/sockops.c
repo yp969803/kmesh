@@ -197,7 +197,7 @@ int sockops_prog(struct bpf_sock_ops *skops)
 
     case BPF_SOCK_OPS_STATE_CB:
         
-        
+        bpf_printk("on status change");
         // observe_on_status_change(skops->sk, skops->args[0]);
         
         if (skops->args[1] == BPF_TCP_CLOSE) {
