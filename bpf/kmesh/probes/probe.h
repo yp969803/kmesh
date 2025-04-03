@@ -81,6 +81,7 @@ static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
     if (!tcp_sock)
         return;
 
+    bpf_printk("on close");
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
         return;
@@ -88,9 +89,9 @@ static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
  
     
     refresh_tcp_conn_info_on_state_change(tcp_sock, storage, state);
-    if (state == BPF_TCP_CLOSE) {
-        bpf_sk_storage_delete(&map_of_sock_storage, sk);
-    }
+    // if (state == BPF_TCP_CLOSE) {
+    //     bpf_sk_storage_delete(&map_of_sock_storage, sk);
+    // }
 }
 
 static inline void observe_on_retransmit(struct bpf_sock *sk)
