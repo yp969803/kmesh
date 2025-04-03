@@ -57,7 +57,7 @@
  * It’s necessary to determine whether the current environment has an
  * enhanced kernel in order to enable Kmesh’s capabilities.
  */
-#define ENHANCED_KERNEL 0
+#define ENHANCED_KERNEL 1
 
 /*
  * Different versions of libbpf can be installed in different environments,
