@@ -218,7 +218,18 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
 
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
         bpf_map_delete_elem(&map_of_tcp_conns, &storage->sock_cookie);
-        bpf_printk("Tcp conn closed");
+        
+        bpf_printk("conn_id %llu", info->conn_id);
+        bpf_printk("send_bytes %u", info->sent_bytes);
+        bpf_printk("recv_bytes %u", info->received_bytes);
+        bpf_printk("duration %llu", info->duration);
+        bpf_printk("srtt_us %u", info->srtt_us);    
+        bpf_printk("rtt_min %u", info->rtt_min);
+        bpf_printk("total_retrans %u", info->total_retrans);
+        bpf_printk("lost_out %u", info->lost_out);
+        bpf_printk("state %u", info->state);
+        bpf_printk("direction %u", info->direction);
+        bpf_printk("conn_success %u", info->conn_success);
         bpf_ringbuf_submit(info, 0);
     }
 }

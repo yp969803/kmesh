@@ -201,9 +201,10 @@ int sockops_prog(struct bpf_sock_ops *skops)
         // observe_on_status_change(skops->sk, skops->args[0]);
         
         if (skops->args[1] == BPF_TCP_CLOSE) {
-            bpf_printk("close socket triggered: %llu\n", sock_cookie);
-            // clean_auth_map(skops);
-            // clean_dstinfo_map(skops);
+          
+            observe_on_status_change(skops->sk, skops->args[0]);
+            clean_auth_map(skops);
+            clean_dstinfo_map(skops);
         }
         break;
 
