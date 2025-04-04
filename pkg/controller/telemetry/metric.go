@@ -115,11 +115,12 @@ type statistics struct {
 
 // connectionDataV4 read from ebpf km_tcp_probe ringbuf and padding with `_`
 type connectionDataV4 struct {
+	// Type         uint32
 	SrcAddr      uint32
 	DstAddr      uint32
 	SrcPort      uint16
 	DstPort      uint16
-	_            [6]uint32
+	_            [4]uint32
 	OriginalAddr uint32
 	OriginalPort uint16
 	_            uint16

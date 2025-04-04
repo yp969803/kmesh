@@ -231,11 +231,11 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
         info->tuple = tuple;
         info->orig_dst.ipv4.addr = 0xFFFFFFFF;
         info->orig_dst.ipv4.port = 0xFFFF;
-        info->type = 0xFFFFFFFFFFFFFFFF;
+        info->type = 0xFFFFFFFF;
         info->conn_id = 0xFFFFFFFFFFFFFFFF;
         info->sent_bytes = 0xFFFFFFFF;
         info->received_bytes = 0xFFFFFFFF;
-        info->duration = 0xFFFFFFFF;
+        info->duration =  0xFFFFFFFFFFFFFFFF;
         info->srtt_us = 0xFFFFFFFF;
         info->rtt_min = 0xFFFFFFFF;
         info->total_retrans = 0xFFFFFFFF;
