@@ -195,6 +195,7 @@ static inline bool is_managed_by_kmesh_skmsg(struct sk_msg_md *msg)
 SEC("sk_msg")
 int sendmsg_prog(struct sk_msg_md *msg)
 {
+    bpf_printk("sk msg prog, sk:\n");
     __u32 off = 0;
     if (msg->family != AF_INET && msg->family != AF_INET6)
         return SK_PASS;
