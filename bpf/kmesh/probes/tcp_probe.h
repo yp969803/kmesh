@@ -254,11 +254,13 @@ static inline void refresh_tcp_conn_info_on_send(struct sock_storage_data *stora
 {
     struct tcp_probe_info *info_vals = bpf_map_lookup_elem(&map_of_tcp_conns, &storage->sock_cookie);
     if (!info_vals) {
+        bpf_printk("refresh_tcp_conn_info_on_send, lookup in map_of_tcp_conns failed\n");
         return;
     }
     __u64 now = bpf_ktime_get_ns();
     info_vals->duration = now - info_vals->start_ns;
     info_vals->sent_bytes = info_vals->sent_bytes + size;
+    bpf_printk("refresh_tcp_conn_info_on_send updated, %llu", storage->sock_cookie);
 }
 
 #endif

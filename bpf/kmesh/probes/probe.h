@@ -156,7 +156,7 @@ static inline void observe_on_send(struct bpf_sock *sk, __u32 size)
 
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
-        BPF_LOG(ERR, PROBE, "on rtt: bpf_sk_storage_get failed\n");
+        bpf_printk("on send: bpf_sk_storage_get failed\n");
         return;
     }
     refresh_tcp_conn_info_on_send(storage, size);
