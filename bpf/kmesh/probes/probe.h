@@ -159,22 +159,18 @@ static inline void observe_on_send(struct bpf_sock *sk, __u32 size)
 
 static inline void report_after_threshold_tm(struct bpf_sock *sk)
 {
-    if (!is_monitoring_enable()) {
-        return;
-    }
 
     struct sock_storage_data *storage = NULL;
-    if (!sk)
-        return;
 
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
-        BPF_LOG(ERR, PROBE, "on rtt: bpf_sk_storage_get failed\n");
+        bpf_printk("on report: bpf_sk_storage_get failed\n");
         return;
     }
 
     struct tcp_probe_info *info_vals = bpf_map_lookup_elem(&map_of_tcp_conns, &storage->sock_cookie);
     if (!info_vals) {
+        bpf_printk("on report: lookup in map_of_tcp_conns failed\n");
         return;
     }
 
@@ -189,7 +185,19 @@ static inline void report_after_threshold_tm(struct bpf_sock *sk)
         info_vals->last_report_ns = now;
         info_vals->duration = now - info_vals->start_ns;
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
-        bpf_printk("Tcp time send");
+        bpf_printk("Tcp time send \n");
+                
+        bpf_printk("conn_id %llu", info->conn_id);
+        bpf_printk("send_bytes %u", info->sent_bytes);
+        bpf_printk("recv_bytes %u", info->received_bytes);
+        bpf_printk("duration %llu", info->duration);
+        bpf_printk("srtt_us %u", info->srtt_us);    
+        bpf_printk("rtt_min %u", info->rtt_min);
+        bpf_printk("total_retrans %u", info->total_retrans);
+        bpf_printk("lost_out %u", info->lost_out);
+        bpf_printk("state %u", info->state);
+        bpf_printk("direction %u", info->direction);
+        bpf_printk("conn_success %u", info->conn_success);
         bpf_ringbuf_submit(info, 0);
     }
 }
