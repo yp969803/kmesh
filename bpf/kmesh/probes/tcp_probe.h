@@ -220,32 +220,45 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
 
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
         bpf_map_delete_elem(&map_of_tcp_conns, &storage->sock_cookie);
-        // struct bpf_sock_tuple tuple;
+        struct bpf_sock_tuple tuple;
 
-        // // Set all bits of ipv4
-        // tuple.ipv4.saddr = 0xFFFFFFFF;
-        // tuple.ipv4.daddr = 0xFFFFFFFF;
-        // tuple.ipv4.sport = 0xFFFF;
-        // tuple.ipv4.dport = 0xFFFF;
+        for (int i = 0; i < 4; i++) {
+            tuple.ipv6.saddr[i] = 0xFFFFFFFF;
+            tuple.ipv6.daddr[i] = 0xFFFFFFFF;
+        }
+    
+        struct orig_dst_info dst;
 
-        // info->tuple = tuple;
-        // info->orig_dst.ipv4.addr = 0xFFFFFFFF;
-        // info->orig_dst.ipv4.port = 0xFFFF;
-        // info->type = 0xFFFFFFFF;
-        // info->conn_id = 0xFFFFFFFFFFFFFFFF;
-        // info->sent_bytes = 0xFFFFFFFF;
-        // info->received_bytes = 0xFFFFFFFF;
-        // info->duration =  0xFFFFFFFFFFFFFFFF;
-        // info->srtt_us = 0xFFFFFFFF;
-        // info->rtt_min = 0xFFFFFFFF;
-        // info->total_retrans = 0xFFFFFFFF;
-        // info->lost_out = 0xFFFFFFFF;
-        // info->state = 0xFFFFFFFF;
-        // info->direction = 0xFFFFFFFF;
-        // info->conn_success = 0xFFFFFFFF;
-        // info->protocol = 0xFFFFFFFF;
-        // info->start_ns = 0xFFFFFFFFFFFFFFFF;
-        // info->last_report_ns = 0xFFFFFFFFFFFFFFFF;
+        // Set IPv6 address to all 1s (128-bit = 4 x 32-bit = 0xFFFFFFFF)
+        for (int i = 0; i < 4; i++) {
+            dst.ipv6.addr[i] = 0xFFFFFFFF;
+        }
+
+        // Set port to 0xFFFF
+        dst.ipv6.port = 0xFFFF;
+
+        // Set sport and dport to 0xFFFF
+        tuple.ipv6.sport = 0xFFFF;
+        tuple.ipv6.dport = 0xFFFF;
+
+        info->tuple = tuple;
+
+        info->orig_dst = dst;
+        info->type = 0xFFFFFFFF;
+        info->conn_id = 0xFFFFFFFFFFFFFFFF;
+        info->sent_bytes = 0xFFFFFFFF;
+        info->received_bytes = 0xFFFFFFFF;
+        info->duration =  0xFFFFFFFFFFFFFFFF;
+        info->srtt_us = 0xFFFFFFFF;
+        info->rtt_min = 0xFFFFFFFF;
+        info->total_retrans = 0xFFFFFFFF;
+        info->lost_out = 0xFFFFFFFF;
+        info->state = 0xFFFFFFFF;
+        info->direction = 0xFFFFFFFF;
+        info->conn_success = 0xFFFFFFFF;
+        info->protocol = 0xFFFFFFFF;
+        info->start_ns = 0xFFFFFFFFFFFFFFFF;
+        info->last_report_ns = 0xFFFFFFFFFFFFFFFF;
         bpf_printk("on close");
         bpf_printk("conn_id %llu", info->conn_id);
         bpf_printk("send_bytes %u", info->sent_bytes);

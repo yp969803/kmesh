@@ -384,6 +384,8 @@ func (m *MetricController) Run(ctx context.Context, mapOfTcpInfo *ebpf.Map) {
 			// 	log.Errorf("wrong length %v of a msg, should be %v", len(rec.RawSample), int(unsafe.Sizeof(connectionDataV4{})))
 			// 	continue
 			// }
+			log.Errorf("v4 size %d", int(unsafe.Sizeof(connectionDataV4{})))
+			log.Errorf("v6 size %d", int(unsafe.Sizeof(connectionDataV6{})))
 			log.Errorf("ringbuffer read %d bytes: %v", len(rec.RawSample), rec.RawSample)
 			connectType := binary.LittleEndian.Uint32(rec.RawSample)
 			originInfo := rec.RawSample[unsafe.Sizeof(connectType):]
