@@ -102,6 +102,7 @@ type statistics struct {
 	ConnectSuccess uint32
 	Direction      uint32
 	State          uint32
+	_              uint32
 	Duration       uint64
 	StartTime      uint64
 	LastReportTime uint64
@@ -115,18 +116,18 @@ type statistics struct {
 
 // connectionDataV4 read from ebpf km_tcp_probe ringbuf and padding with `_`
 type connectionDataV4 struct {
-	// Type         uint32
 	SrcAddr      uint32
 	DstAddr      uint32
 	SrcPort      uint16
 	DstPort      uint16
-	_            [4]uint32
+	_            [6]uint32
 	OriginalAddr uint32
 	OriginalPort uint16
 	_            uint16
-	_            [3]uint32
+	_            [4]uint32
 	ConnId       uint64
 	statistics
+	_            uint32
 }
 
 // connectionDataV6 read from ebpf km_tcp_probe ringbuf and padding with `_`
