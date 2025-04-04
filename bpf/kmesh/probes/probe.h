@@ -66,6 +66,7 @@ static inline void observe_on_connect_established(struct bpf_sock *sk, __u64 soc
 static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
 {
     if (!is_monitoring_enable()) {
+        bpf_printk("on close: monitoring is disabled\n");
         return;
     }
 
