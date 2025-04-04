@@ -223,16 +223,16 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
         struct orig_dst_info org_info;
 
         // Example: Set IPv4 Address to 192.168.1.100 and Port to 8080
-        org_info.ipv4.addr = htonl(0xC0A80164);  // 192.168.1.100
-        org_info.ipv4.port = htons(8080);
+        org_info.ipv4.addr = bpf_htonl(0xC0A80164);  // 192.168.1.100
+        org_info.ipv4.port = bpf_htonl(8080);
 
         struct bpf_sock_tuple tuple;
 
         // Set IPv4 addresses (192.168.1.100 -> 192.168.1.1)
-        tuple.ipv4.saddr = htonl(0xC0A80164);  // 192.168.1.100
-        tuple.ipv4.daddr = htonl(0xC0A80101);  // 192.168.1.1
-        tuple.ipv4.sport = htons(12345);       // Source port
-        tuple.ipv4.dport = htons(80);          // Destination port (HTTP)
+        tuple.ipv4.saddr = bpf_htonl(0xC0A80164);  // 192.168.1.100
+        tuple.ipv4.daddr = bpf_htonl(0xC0A80101);  // 192.168.1.1
+        tuple.ipv4.sport = bpf_htonl(12345);       // Source port
+        tuple.ipv4.dport = bpf_htonl(80);          // Destination port (HTTP)
         info->orig_dst = org_info;
         info->tuple = tuple;
         info->type = (info->tuple.ipv4.saddr == 0) ? IPV6 : IPV4;
