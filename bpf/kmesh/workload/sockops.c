@@ -203,8 +203,10 @@ int sockops_prog(struct bpf_sock_ops *skops)
             break;
         }
         
+        observe_on_status_change(skops->sk, skops->args[1]);
+        
         if (skops->args[1] == BPF_TCP_CLOSE) {
-            observe_on_status_change(skops->sk, skops->args[1]);
+            
             clean_auth_map(skops);
             clean_dstinfo_map(skops);
         }
