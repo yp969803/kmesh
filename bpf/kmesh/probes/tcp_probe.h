@@ -173,6 +173,7 @@ static inline void record_report_tcp_conn_info(
     __builtin_memcpy(info, &info_vals, sizeof(struct tcp_probe_info));
      
     bpf_map_update_elem(&map_of_tcp_conns, &storage->sock_cookie, &info_vals, BPF_ANY);
+
     bpf_printk("conn_id %llu", info->conn_id);
     bpf_printk("send_bytes %u", info->sent_bytes);
     bpf_printk("recv_bytes %u", info->received_bytes);
@@ -219,6 +220,36 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
 
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
         bpf_map_delete_elem(&map_of_tcp_conns, &storage->sock_cookie);
+        struct orig_dst_info org_info;
+
+        // Example: Set IPv4 Address to 192.168.1.100 and Port to 8080
+        org_info.ipv4.addr = htonl(0xC0A80164);  // 192.168.1.100
+        org_info.ipv4.port = htons(8080);
+
+        struct bpf_sock_tuple tuple;
+
+        // Set IPv4 addresses (192.168.1.100 -> 192.168.1.1)
+        tuple.ipv4.saddr = htonl(0xC0A80164);  // 192.168.1.100
+        tuple.ipv4.daddr = htonl(0xC0A80101);  // 192.168.1.1
+        tuple.ipv4.sport = htons(12345);       // Source port
+        tuple.ipv4.dport = htons(80);          // Destination port (HTTP)
+        info->orig_dst = org_info;
+        info->tuple = tuple;
+        info->type = (info->tuple.ipv4.saddr == 0) ? IPV6 : IPV4;
+        info->conn_id = (__u64)16;
+        info->sent_bytes = (__u32)16;
+        info->received_bytes = (__u32)16;
+        info->duration = (__u64)16;
+        info->srtt_us = (__u32)16;
+        info->rtt_min = (__u32)16;
+        info->total_retrans = (__u32)16;
+        info->lost_out = (__u32)16;
+        info->state = (__u32)16;
+        info->direction = (__u32)16;
+        info->conn_success = (__u32)16;
+        info->protocol = IPV4;
+        info->start_ns = (__u64)16;
+        info->last_report_ns = (__u64)16;
         bpf_printk("on close");
         bpf_printk("conn_id %llu", info->conn_id);
         bpf_printk("send_bytes %u", info->sent_bytes);
