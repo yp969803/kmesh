@@ -147,6 +147,7 @@ static inline void observe_on_send(struct bpf_sock *sk, __u32 size)
 {
     bpf_printk("observing on send");
     if (!is_monitoring_enable()) {
+        bpf_printk("on send: monitoring is disabled\n");
         return;
     }
     struct sock_storage_data *storage = NULL;

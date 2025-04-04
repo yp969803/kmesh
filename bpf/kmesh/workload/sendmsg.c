@@ -204,8 +204,7 @@ int sendmsg_prog(struct sk_msg_md *msg)
     encode_metadata_org_dst_addr(msg, &off, (msg->family == AF_INET));
 
     struct bpf_sock *sk = msg->sk;
-    bpf_printk("sk msg prog, sk:\n");
-
+ 
     if (sk) {
         if (is_managed_by_kmesh_skmsg(msg)) {
             observe_on_send(sk, msg->size);
