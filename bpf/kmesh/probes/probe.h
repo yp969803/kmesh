@@ -53,12 +53,12 @@ static inline void observe_on_connect_established(struct bpf_sock *sk, __u64 soc
     }
 
     // INBOUND scenario
-    bpf_printk("on connect: bpf_sk_storage_get success, %llu", sock_cookie);
+    // bpf_printk("on connect: bpf_sk_storage_get success, %llu", sock_cookie);
     storage->connect_ns = bpf_ktime_get_ns();
     storage->direction = direction;
     storage->connect_success = true;
     storage->sock_cookie = sock_cookie;
-    bpf_printk("Storage address: %px", storage);
+    // bpf_printk("Storage address: %px", storage);
 
     record_report_tcp_conn_info(sk, tcp_sock, storage, BPF_TCP_ESTABLISHED);
 }
@@ -74,8 +74,6 @@ static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
         bpf_printk("on close: returning at bpf_tcp_esta\n");
         return;
     }
-
-    bpf_printk("on close");
 
     struct bpf_tcp_sock *tcp_sock = NULL;
     struct sock_storage_data *storage = NULL;
@@ -114,7 +112,7 @@ static inline void observe_on_retransmit(struct bpf_sock *sk)
 
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
-        BPF_LOG(ERR, PROBE, "on retransmit: bpf_sk_storage_get failed\n");
+        bpf_printk("on retransmit: bpf_sk_storage_get failed\n");
         return;
     }
     refresh_tcp_conn_info_on_retransmit_rtt(tcp_sock, storage);
@@ -178,14 +176,14 @@ static inline void report_after_threshold_tm(struct bpf_sock *sk)
     if ((now - info_vals->last_report_ns) > LONG_CONN_THRESHOLD_TIME) {
         struct tcp_probe_info *info = bpf_ringbuf_reserve(&map_of_tcp_probe, sizeof(struct tcp_probe_info), 0);
         if (!info) {
-            BPF_LOG(ERR, PROBE, "bpf_ringbuf_reserve tcp_report failed\n");
+            bpf_printk("on report: bpf_ringbuf_reserve failed\n");
             return;
         }
 
         info_vals->last_report_ns = now;
         info_vals->duration = now - info_vals->start_ns;
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
-        bpf_printk("Tcp time send \n");
+        bpf_printk("Tcp time send threshold");
                 
         bpf_printk("conn_id %llu", info->conn_id);
         bpf_printk("send_bytes %u", info->sent_bytes);
@@ -197,7 +195,7 @@ static inline void report_after_threshold_tm(struct bpf_sock *sk)
         bpf_printk("lost_out %u", info->lost_out);
         bpf_printk("state %u", info->state);
         bpf_printk("direction %u", info->direction);
-        bpf_printk("conn_success %u", info->conn_success);
+        bpf_printk("conn_success %u \n", info->conn_success);
         bpf_ringbuf_submit(info, 0);
     }
 }

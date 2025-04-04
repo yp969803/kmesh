@@ -143,7 +143,7 @@ static inline void record_report_tcp_conn_info(
     struct tcp_probe_info *info = NULL;
     info = bpf_ringbuf_reserve(&map_of_tcp_probe, sizeof(struct tcp_probe_info), 0);
     if (!info) {
-        BPF_LOG(ERR, PROBE, "bpf_ringbuf_reserve tcp_report failed\n");
+        bpf_printk("record_report_tcp_conn_info, bpf_ringbuf_reserve failed\n");
         return;
     }
     __u64 now = bpf_ktime_get_ns();
@@ -183,7 +183,7 @@ static inline void record_report_tcp_conn_info(
     bpf_printk("lost_out %u", info->lost_out);
     bpf_printk("state %u", info->state);
     bpf_printk("direction %u", info->direction);
-    bpf_printk("conn_success %u", info->conn_success);
+    bpf_printk("conn_success %u \n", info->conn_success);
     bpf_ringbuf_submit(info, 0);
 }
 
@@ -191,12 +191,13 @@ static inline void
 refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock_storage_data *storage, __u32 state)
 {
     struct tcp_probe_info *info = NULL;
-    bpf_printk("refresh_tcp_conn_info_on_state_change, %llu", storage->sock_cookie);
     struct tcp_probe_info *info_vals = bpf_map_lookup_elem(&map_of_tcp_conns, &storage->sock_cookie);
     if (!info_vals) {
-        BPF_LOG(ERR, PROBE, "lookup in map_of_tcp_conns failed\n");
+        bpf_printk("refresh_tcp_conn_info_on_state_change, lookup in map_of_tcp_conns failed\n");
         return;
     }
+
+    
     __u64 now = bpf_ktime_get_ns();
     info_vals->state = state;
     info_vals->duration = now - info_vals->start_ns;
@@ -205,7 +206,7 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
     info_vals->rtt_min = tcp_sock->rtt_min;
     info_vals->total_retrans = tcp_sock->total_retrans;
     info_vals->lost_out = tcp_sock->lost_out;
-
+    bpf_printk("refresh_tcp_conn_info_on_state_change, %llu, %u", storage->sock_cookie, state);
     // Remove tcp connection from map_of_tcp_conns when the conn is closed and report the info to ring-buff
     if (state == BPF_TCP_CLOSE) {
         info_vals->sent_bytes = tcp_sock->delivered;
@@ -218,7 +219,7 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
 
         __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
         bpf_map_delete_elem(&map_of_tcp_conns, &storage->sock_cookie);
-        
+        bpf_printk("on close");
         bpf_printk("conn_id %llu", info->conn_id);
         bpf_printk("send_bytes %u", info->sent_bytes);
         bpf_printk("recv_bytes %u", info->received_bytes);
@@ -229,7 +230,7 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
         bpf_printk("lost_out %u", info->lost_out);
         bpf_printk("state %u", info->state);
         bpf_printk("direction %u", info->direction);
-        bpf_printk("conn_success %u", info->conn_success);
+        bpf_printk("conn_success %u \n", info->conn_success);
         bpf_ringbuf_submit(info, 0);
     }
 }
@@ -239,8 +240,10 @@ refresh_tcp_conn_info_on_retransmit_rtt(struct bpf_tcp_sock *tcp_sock, struct so
 {
     struct tcp_probe_info *info_vals = bpf_map_lookup_elem(&map_of_tcp_conns, &storage->sock_cookie);
     if (!info_vals) {
+        bpf_printk("refresh_tcp_conn_info_on_retransmit_rtt, lookup in map_of_tcp_conns failed\n");
         return;
     }
+
     __u64 now = bpf_ktime_get_ns();
     info_vals->duration = now - info_vals->start_ns;
     info_vals->received_bytes = tcp_sock->bytes_received;
@@ -248,6 +251,7 @@ refresh_tcp_conn_info_on_retransmit_rtt(struct bpf_tcp_sock *tcp_sock, struct so
     info_vals->rtt_min = tcp_sock->rtt_min;
     info_vals->total_retrans = tcp_sock->total_retrans;
     info_vals->lost_out = tcp_sock->lost_out;
+    bpf_printk("refresh_tcp_conn_info_on_retransmit_rtt, %llu", storage->sock_cookie);
 }
 
 static inline void refresh_tcp_conn_info_on_send(struct sock_storage_data *storage, __u32 size)
