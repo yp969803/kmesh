@@ -247,7 +247,7 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct sock
         info->state = (__u32)16;
         info->direction = (__u32)16;
         info->conn_success = (__u32)16;
-        info->protocol = IPV4;
+        info->protocol = (__u32)16;
         info->start_ns = (__u64)16;
         info->last_report_ns = (__u64)16;
         bpf_printk("on close");
