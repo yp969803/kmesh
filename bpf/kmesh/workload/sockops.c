@@ -161,6 +161,9 @@ int sockops_prog(struct bpf_sock_ops *skops)
 
     switch (skops->op) {
     case BPF_SOCK_OPS_TCP_CONNECT_CB:
+        if (bpf_sock_ops_cb_flags_set(skops, BPF_SOCK_OPS_STATE_CB_FLAG) != 0) {
+            bpf_printk("set sockops cb failed!\n");
+        }
         skops_handle_kmesh_managed_process(skops);
         break;
 
