@@ -71,6 +71,7 @@ static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
     }
 
     if (state == BPF_TCP_ESTABLISHED) {
+        bpf_printk("on close: returning at bpf_tcp_esta\n");
         return;
     }
 
