@@ -393,6 +393,8 @@ func (m *MetricController) Run(ctx context.Context, mapOfTcpInfo *ebpf.Map) {
 					log.Errorf("get connection info failed: %v", err)
 					continue
 				}
+				log.Errorf("Connection Data: %+v\n", data)
+
 			case constants.MSG_TYPE_IPV6:
 				data, err = buildV6Metric(buf, tcp_conns)
 				if err!= nil {
