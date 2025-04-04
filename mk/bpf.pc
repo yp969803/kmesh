@@ -1,4 +1,4 @@
-prefix=/home/yash/go/src/github.com/kmesh/
+prefix=/kmesh/
 Name: bpf
 Description: bpf
 Version:
