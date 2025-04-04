@@ -473,11 +473,6 @@ func buildV4Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 		totalRetrans:  connectData.statistics.Retransmits,
 		packetLost:    connectData.statistics.LostPackets,
 	}
-	
-
-	if data.state == TCP_CLOSTED {
-		delete(tcp_conns, connectData.ConnId)
-	}
 
 	return data, nil
 }
@@ -522,10 +517,6 @@ func buildV6Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 		sentBytes:     connectData.SentBytes,
 		totalRetrans:  connectData.statistics.Retransmits,
 		packetLost:    connectData.statistics.LostPackets,
-	}
-
-	if data.state == TCP_CLOSTED {
-		delete(tcp_conns, connectData.ConnId)
 	}
 
 	return data, nil
