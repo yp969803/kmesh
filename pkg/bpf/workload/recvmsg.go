@@ -14,165 +14,152 @@
  * limitations under the License.
  */
 
-package workload
+ package workload
 
-import (
-	"os"
-	"path/filepath"
-	"reflect"
-	"syscall"
-
-	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/link"
-
-	bpf2go "kmesh.net/kmesh/bpf/kmesh/bpf2go/dualengine"
-	"kmesh.net/kmesh/daemon/options"
-	"kmesh.net/kmesh/pkg/bpf/general"
-	"kmesh.net/kmesh/pkg/bpf/restart"
-	"kmesh.net/kmesh/pkg/bpf/utils"
-	helper "kmesh.net/kmesh/pkg/utils"
-)
-
-type BpfRecvMsgWorkload struct {
-	Info     general.BpfInfo
-	AttachFD int
-	bpf2go.KmeshRecvmsgObjects
-
-	sockOpsWorkloadObj *BpfSockOpsWorkload
-}
-
-func (sm *BpfRecvMsgWorkload) NewBpf(cfg *options.BpfConfig, sockOpsWorkloadObj *BpfSockOpsWorkload) error {
-	sm.Info.MapPath = cfg.BpfFsPath + "/bpf_kmesh_workload/map/"
-	sm.Info.BpfFsPath = cfg.BpfFsPath + "/bpf_kmesh_workload/recvmsg/"
-	sm.Info.Cgroup2Path = cfg.Cgroup2Path
-	sm.sockOpsWorkloadObj = sockOpsWorkloadObj
-
-	if err := os.MkdirAll(sm.Info.MapPath,
-		syscall.S_IRUSR|syscall.S_IWUSR|syscall.S_IXUSR|
-			syscall.S_IRGRP|syscall.S_IXGRP); err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	if err := os.MkdirAll(sm.Info.BpfFsPath,
-		syscall.S_IRUSR|syscall.S_IWUSR|syscall.S_IXUSR|
-			syscall.S_IRGRP|syscall.S_IXGRP); err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	return nil
-}
-
-func (sm *BpfRecvMsgWorkload) loadKmeshRecvmsgObjects() (*ebpf.CollectionSpec, error) {
-	var (
-		err  error
-		spec *ebpf.CollectionSpec
-		opts ebpf.CollectionOptions
-	)
-
-	opts.Maps.PinPath = sm.Info.MapPath
-	if helper.KernelVersionLowerThan5_13() {
-		spec, err = bpf2go.LoadKmeshRecvmsgCompat()
-	} else {
-		spec, err = bpf2go.LoadKmeshRecvmsg()
-	}
-	if err != nil || spec == nil {
-		return nil, err
-	}
-
-	utils.SetMapPinType(spec, ebpf.PinByName)
-	if err = spec.LoadAndAssign(&sm.KmeshRecvmsgObjects, &opts); err != nil {
-		return nil, err
-	}
-
-	// bpflink for sk_skb is supported in kernel 6.13, so we update recvmsg manually here
-	// sendmsg ebpf prog is mounted on sockmap and processed for each socket.
-	// It has the following characteristics:
-	// 1. Multiple sk_skb ebpf prog can exist at the same time
-	// 2. If the old sk_skb ebpf program is not pinned, it will wait until all
-	// sockets on the old sk_skb ebpf prog are disconnected before automatically detaching.
-	// Therefore, the following methods are used to achieve seamless replacement
-	// 1) loading new sk_skb prog
-	// 2) unpin old sk_skb prog: If sockmap is deleted, sk_skb will also be cleaned up
-	// 3) pin new sk_skb prog
-	// 4) attach new sk_skb prog(in RecvMsg.Attach): Replace the old sk_skb prog
-	if restart.GetStartType() == restart.Restart {
-		pinPath := filepath.Join(sm.Info.BpfFsPath, "recvmsg_prog")
-		oldSkSkb, err := ebpf.LoadPinnedProgram(pinPath, nil)
-		if err != nil {
-			log.Errorf("LoadPinnedProgram failed: %v", err)
-			return nil, err
-		}
-
-		if err = oldSkSkb.Unpin(); err != nil {
-			return nil, err
-		}
-	}
-
-	value := reflect.ValueOf(sm.KmeshRecvmsgObjects.KmeshRecvmsgPrograms)
-	if err = utils.PinPrograms(&value, sm.Info.BpfFsPath); err != nil {
-		return nil, err
-	}
-	return spec, nil
-}
-
-func (sm *BpfRecvMsgWorkload) LoadRecvMsg() error {
-	/* load kmesh recvmsg main bpf prog */
-	spec, err := sm.loadKmeshRecvmsgObjects()
-	if err != nil {
-		return err
-	}
-
-	prog := spec.Programs["recvmsg_prog"]
-	sm.Info.Type = prog.Type
-	sm.Info.AttachType = prog.AttachType
-	return nil
-}
-
-func (sm *BpfRecvMsgWorkload) Attach() error {
-	// Use a program handle that cannot be closed by the caller
-	clone, err := sm.KmeshRecvmsgObjects.KmeshRecvmsgPrograms.RecvmsgProg.Clone()
-	if err != nil {
-		return err
-	}
-
-	sm.AttachFD = sm.sockOpsWorkloadObj.GetSockMapFD()
-	args := link.RawAttachProgramOptions{
-		Target:  sm.AttachFD,
-		Program: clone,
-		Flags:   0,
-		Attach:  ebpf.AttachSkSKBVerdict,
-	}
-
-	if err = link.RawAttachProgram(args); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (sm *BpfRecvMsgWorkload) Detach() error {
-	if sm.AttachFD > 0 {
-		args := link.RawDetachProgramOptions{
-			Target:  sm.AttachFD,
-			Program: sm.KmeshRecvmsgObjects.KmeshRecvmsgPrograms.RecvmsgProg,
-			Attach:  ebpf.AttachSkSKBVerdict,
-		}
-
-		if err := link.RawDetachProgram(args); err != nil {
-			return err
-		}
-	}
-
-	program_value := reflect.ValueOf(sm.KmeshRecvmsgObjects.KmeshRecvmsgPrograms)
-	if err := utils.UnpinPrograms(&program_value); err != nil {
-		return err
-	}
-
-	if err := os.RemoveAll(sm.Info.BpfFsPath); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	if err := sm.KmeshRecvmsgObjects.Close(); err != nil {
-		return err
-	}
-	return nil
-}
+ import (
+	 "fmt"
+	 "os"
+	 "path/filepath"
+	 "reflect"
+	 "syscall"
+ 
+	 "github.com/cilium/ebpf"
+	 "github.com/cilium/ebpf/link"
+ 
+	 bpf2go "kmesh.net/kmesh/bpf/kmesh/bpf2go/dualengine"
+	 "kmesh.net/kmesh/daemon/options"
+	 "kmesh.net/kmesh/pkg/bpf/general"
+	 "kmesh.net/kmesh/pkg/bpf/restart"
+	 "kmesh.net/kmesh/pkg/bpf/utils"
+	 helper "kmesh.net/kmesh/pkg/utils"
+ )
+ 
+ type BpfRecvMsgWorkload struct {
+	 Info general.BpfInfo
+	 Link link.Link
+	 bpf2go.KmeshRecvmsgObjects
+ }
+ 
+ func (so *BpfRecvMsgWorkload) NewBpf(cfg *options.BpfConfig) error {
+	 so.Info.MapPath = cfg.BpfFsPath + "/bpf_kmesh_workload/map/"
+	 so.Info.BpfFsPath = cfg.BpfFsPath + "/bpf_kmesh_workload/recv_msg/"
+	 so.Info.Cgroup2Path = cfg.Cgroup2Path
+ 
+	 if err := os.MkdirAll(so.Info.MapPath,
+		 syscall.S_IRUSR|syscall.S_IWUSR|syscall.S_IXUSR|
+			 syscall.S_IRGRP|syscall.S_IXGRP); err != nil && !os.IsExist(err) {
+		 return err
+	 }
+ 
+	 if err := os.MkdirAll(so.Info.BpfFsPath,
+		 syscall.S_IRUSR|syscall.S_IWUSR|syscall.S_IXUSR|
+			 syscall.S_IRGRP|syscall.S_IXGRP); err != nil && !os.IsExist(err) {
+		 return err
+	 }
+ 
+	 return nil
+ }
+ 
+ func (so *BpfRecvMsgWorkload) loadKmeshSockopsObjects() (*ebpf.CollectionSpec, error) {
+	 var (
+		 err  error
+		 spec *ebpf.CollectionSpec
+		 opts ebpf.CollectionOptions
+	 )
+ 
+	 opts.Maps.PinPath = so.Info.MapPath
+ 
+	 if helper.KernelVersionLowerThan5_13() {
+		 spec, err = bpf2go.LoadKmeshRecvmsgCompat()
+	 } else {
+		 spec, err = bpf2go.LoadKmeshRecvmsg()
+	 }
+	 if err != nil {
+		 return nil, err
+	 }
+	 if spec == nil {
+		 return nil, fmt.Errorf("error: loadKmeshSockopsObjects() spec is nil")
+	 }
+ 
+	 utils.SetMapPinType(spec, ebpf.PinByName)
+	 if err = spec.LoadAndAssign(&so.KmeshRecvmsgObjects, &opts); err != nil {
+		 return nil, err
+	 }
+ 
+	 return spec, nil
+ }
+ 
+ func (so *BpfRecvMsgWorkload) LoadSockOps() error {
+	 /* load kmesh sockops main bpf prog*/
+	 spec, err := so.loadKmeshSockopsObjects()
+	 if err != nil {
+		 return err
+	 }
+ 
+	 prog := spec.Programs["recvmsg_prog"]
+	 so.Info.Type = prog.Type
+	 so.Info.AttachType = prog.AttachType
+ 
+	 return nil
+ }
+ 
+ func (so *BpfRecvMsgWorkload) Attach() error {
+	 var err error
+	 cgopt := link.CgroupOptions{
+		 Path:    so.Info.Cgroup2Path,
+		 Attach:  so.Info.AttachType,
+		 Program: so.KmeshRecvmsgObjects.RecvmsgProg,
+	 }
+	 pinPath := filepath.Join(so.Info.BpfFsPath, "cgroup_recvmsg_prog")
+ 
+	 if restart.GetStartType() == restart.Restart {
+		 if so.Link, err = utils.BpfProgUpdate(pinPath, cgopt); err != nil {
+			 return err
+		 }
+	 } else {
+		 lk, err := link.AttachCgroup(cgopt)
+		 if err != nil {
+			 return err
+		 }
+		 so.Link = lk
+ 
+		 if err := lk.Pin(pinPath); err != nil {
+			 return err
+		 }
+	 }
+ 
+	 return nil
+ }
+ 
+ func (so *BpfRecvMsgWorkload) close() error {
+	 if err := so.KmeshRecvmsgObjects.Close(); err != nil {
+		 return err
+	 }
+	 return nil
+ }
+ 
+ func (so *BpfRecvMsgWorkload) Detach() error {
+	 if err := so.close(); err != nil {
+		 return err
+	 }
+ 
+	 program_value := reflect.ValueOf(so.KmeshRecvmsgObjects.KmeshRecvmsgPrograms)
+	 if err := utils.UnpinPrograms(&program_value); err != nil {
+		 return err
+	 }
+ 
+	 map_value := reflect.ValueOf(so.KmeshRecvmsgObjects.KmeshRecvmsgMaps)
+	 if err := utils.UnpinMaps(&map_value); err != nil {
+		 return err
+	 }
+ 
+	 if err := os.RemoveAll(so.Info.BpfFsPath); err != nil && !os.IsNotExist(err) {
+		 return err
+	 }
+ 
+	 if so.Link != nil {
+		 return so.Link.Close()
+	 }
+	 return nil
+ }
+ 

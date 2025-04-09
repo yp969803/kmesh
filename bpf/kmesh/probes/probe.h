@@ -82,7 +82,6 @@ static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
     if (!tcp_sock)
         return;
 
-    
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
         bpf_printk("on close: bpf_sk_storage_get failed\n");
@@ -142,7 +141,6 @@ static inline void observe_on_rtt(struct bpf_sock *sk)
 
 static inline void observe_on_data(struct bpf_sock *sk, __u32 size, __u8 direction)
 {
-
     bpf_printk("observing on send");
     struct tcp_probe_info *storage = NULL;
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
@@ -154,7 +152,6 @@ static inline void observe_on_data(struct bpf_sock *sk, __u32 size, __u8 directi
 
 static inline void report_after_threshold_tm(struct bpf_sock *sk)
 {
-
     struct tcp_probe_info *storage = NULL;
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
@@ -169,18 +166,16 @@ static inline void report_after_threshold_tm(struct bpf_sock *sk)
             return;
         }
 
-
-        
         storage->last_report_ns = now;
         storage->duration = now - storage->start_ns;
         __builtin_memcpy(info, storage, sizeof(struct tcp_probe_info));
         bpf_printk("Tcp time send threshold");
-                
+
         bpf_printk("conn_id %llu", info->conn_id);
         bpf_printk("send_bytes %u", info->sent_bytes);
         bpf_printk("recv_bytes %u", info->received_bytes);
         bpf_printk("duration %llu", info->duration);
-        bpf_printk("srtt_us %u", info->srtt_us);    
+        bpf_printk("srtt_us %u", info->srtt_us);
         bpf_printk("rtt_min %u", info->rtt_min);
         bpf_printk("total_retrans %u", info->total_retrans);
         bpf_printk("lost_out %u", info->lost_out);

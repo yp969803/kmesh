@@ -54,6 +54,9 @@ func NewBpfWorkload(cfg *options.BpfConfig) (*BpfWorkload, error) {
 		return nil, err
 	}
 
+	if err := workloadObj.RecvMsg.NewBpf(cfg); err != nil {
+		return nil, err
+	}
 	if err := workloadObj.XdpAuth.NewBpf(cfg); err != nil {
 		return nil, err
 	}
@@ -63,10 +66,6 @@ func NewBpfWorkload(cfg *options.BpfConfig) (*BpfWorkload, error) {
 		return nil, err
 	}
 
-	// we must pass pointer here, because workloadObj.SockOps will be modified during loading
-	if err := workloadObj.RecvMsg.NewBpf(cfg, &workloadObj.SockOps); err != nil {
-		return nil, err
-	}
 
 	if cfg.EnableIPsec {
 		var err error
@@ -135,7 +134,7 @@ func (w *BpfWorkload) Load() error {
 		return err
 	}
 
-	if err := w.RecvMsg.LoadRecvMsg(); err != nil {
+	if err := w.RecvMsg.LoadSockOps(); err != nil {
 		return err
 	}
 

@@ -151,8 +151,6 @@ static inline void record_report_tcp_conn_info(
     storage->last_report_ns = now;
     construct_tuple(sk, &storage->tuple, storage->direction);
 
-
-
     storage->state = state;
     storage->duration = now - storage->start_ns;
     storage->sent_bytes = tcp_sock->delivered;
@@ -168,8 +166,6 @@ static inline void record_report_tcp_conn_info(
         storage->type = IPV4;
     }
 
-
-
     construct_orig_dst_info(sk, storage);
     __builtin_memcpy(info, storage, sizeof(struct tcp_probe_info));
 
@@ -177,7 +173,7 @@ static inline void record_report_tcp_conn_info(
     bpf_printk("send_bytes %u", info->sent_bytes);
     bpf_printk("recv_bytes %u", info->received_bytes);
     bpf_printk("duration %llu", info->duration);
-    bpf_printk("srtt_us %u", info->srtt_us);    
+    bpf_printk("srtt_us %u", info->srtt_us);
     bpf_printk("rtt_min %u", info->rtt_min);
     bpf_printk("total_retrans %u", info->total_retrans);
     bpf_printk("lost_out %u", info->lost_out);
@@ -213,14 +209,13 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct tcp_
             return;
         }
 
-
         // struct bpf_sock_tuple tuple;
 
         // for (int i = 0; i < 4; i++) {
         //     tuple.ipv6.saddr[i] = 0xFFFFFFFF;
         //     tuple.ipv6.daddr[i] = 0xFFFFFFFF;
         // }
-    
+
         // struct orig_dst_info dst;
 
         // // Set IPv6 address to all 1s (128-bit = 4 x 32-bit = 0xFFFFFFFF)
@@ -258,7 +253,7 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct tcp_
         bpf_printk("send_bytes %u", info->sent_bytes);
         bpf_printk("recv_bytes %u", info->received_bytes);
         bpf_printk("duration %llu", info->duration);
-        bpf_printk("srtt_us %u", info->srtt_us);    
+        bpf_printk("srtt_us %u", info->srtt_us);
         bpf_printk("rtt_min %u", info->rtt_min);
         bpf_printk("total_retrans %u", info->total_retrans);
         bpf_printk("lost_out %u", info->lost_out);
@@ -274,8 +269,6 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct tcp_
 static inline void
 refresh_tcp_conn_info_on_retransmit_rtt(struct bpf_tcp_sock *tcp_sock, struct tcp_probe_info *storage)
 {
-
-
     bpf_printk("refresh_tcp_conn_info_on_retransmit_rtt, %llu", storage->conn_id);
 
     __u64 now = bpf_ktime_get_ns();
@@ -289,7 +282,6 @@ refresh_tcp_conn_info_on_retransmit_rtt(struct bpf_tcp_sock *tcp_sock, struct tc
 
 static inline void refresh_tcp_conn_info_on_data(struct tcp_probe_info *storage, __u32 size, __u8 direction)
 {
-
     bpf_printk("refresh_tcp_conn_info_on_send updated, %llu", storage->conn_id);
 
     __u64 now = bpf_ktime_get_ns();

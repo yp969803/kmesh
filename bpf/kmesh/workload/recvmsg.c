@@ -28,7 +28,7 @@ static inline bool is_managed_by_kmesh_skb(struct __sk_buff *skb)
     return (*value == 0);
 }
 
-SEC("sk_skb")
+SEC("cgroup_skb/ingress")
 int recvmsg_prog(struct __sk_buff *skb)
 {
     if (skb->family != AF_INET && skb->family != AF_INET6)
@@ -38,12 +38,18 @@ int recvmsg_prog(struct __sk_buff *skb)
     __u32 size = skb->len;
     __u64 sock_cookie = bpf_get_socket_cookie(skb);
     struct tcp_probe_info *storage = NULL;
-    storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
-     
+    
+
     if (sk) {
         if (is_managed_by_kmesh_skb(skb)) {
-            // observe_on_data(sk, size, RECV);
-            // report_after_threshold_tm(sk);
+            storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
+
+            struct bpf_tcp_sock *tcp_sock = bpf_tcp_sock(sk);
+            __u32 recieved_bytes = tcp_sock->bytes_received;
+            bpf_printk("recvmsg_prog, sk %p, size %u, sock_cookie %llu, recv_bytes %u\n", sk, size, sock_cookie,
+                     recieved_bytes);
+                     observe_on_data(sk, size, RECV);
+                     report_after_threshold_tm(sk);
         }
     } else {
         BPF_LOG(ERR, KMESH, "sk is nil\n");
