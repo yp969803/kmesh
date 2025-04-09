@@ -91,6 +91,7 @@ func buildAccesslog(data requestMetric, conn_metrics connMetric, accesslog logIn
 	destinationInfo := fmt.Sprintf("dst.addr=%s, dst.service=%s, dst.workload=%s, dst.namespace=%s", accesslog.destinationAddress, accesslog.destinationService, accesslog.destinationWorkload, accesslog.destinationNamespace)
 	connectionInfo := fmt.Sprintf("conn_id=%d start_time=%s, direction=%s, status=%s, sent_bytes=%d, received_bytes=%d, packet_loss=%d, retransmissions=%d, srtt=%dus, min_rtt=%dus, duration=%vms", conn_metrics.connId ,startTimeInfo, accesslog.direction, accesslog.status, conn_metrics.sentBytes, conn_metrics.receivedBytes, conn_metrics.packetLost, conn_metrics.totalRetrans, data.srtt, data.minRtt, (float64(data.duration) / 1000000.0))
 
+
 	logResult := fmt.Sprintf("%s %s, %s, %s", timeInfo, sourceInfo, destinationInfo, connectionInfo)
 	return logResult
 }

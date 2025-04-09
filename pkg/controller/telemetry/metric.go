@@ -106,12 +106,11 @@ type statistics struct {
 	Duration       uint64
 	StartTime      uint64
 	LastReportTime uint64
-	// TODO: statistics below are not used for now
-	Protocol    uint32
-	SRttTime    uint32
-	RttMin      uint32
-	Retransmits uint32
-	LostPackets uint32
+	Protocol       uint32
+	SRttTime       uint32
+	RttMin         uint32
+	Retransmits    uint32
+	LostPackets    uint32
 }
 
 // connectionDataV4 read from ebpf km_tcp_probe ringbuf and padding with `_`
@@ -127,7 +126,7 @@ type connectionDataV4 struct {
 	_            [4]uint32
 	ConnId       uint64
 	statistics
-	_            uint32
+	_ uint32
 }
 
 // connectionDataV6 read from ebpf km_tcp_probe ringbuf and padding with `_`
@@ -142,7 +141,8 @@ type connectionDataV6 struct {
 	_            uint32
 	ConnId       uint64
 	statistics
-	_            uint32
+
+	_ uint32
 }
 
 type connMetric struct {
@@ -172,7 +172,7 @@ type requestMetric struct {
 	srtt           uint32
 	minRtt         uint32
 	totalRetrans   uint32
-	PacketLost     uint32
+	packetLost     uint32
 }
 
 type workloadMetricLabels struct {
@@ -382,29 +382,32 @@ func (m *MetricController) Run(ctx context.Context, mapOfTcpInfo *ebpf.Map) {
 				log.Errorf("ringbuf reader FAILED to read, err: %v", err)
 				continue
 			}
-			// if len(rec.RawSample) != int(unsafe.Sizeof(connectionDataV4{})) {
-			// 	log.Errorf("wrong length %v of a msg, should be %v", len(rec.RawSample), int(unsafe.Sizeof(connectionDataV4{})))
-			// 	continue
-			// }
+
 			log.Errorf("v4 size %d", int(unsafe.Sizeof(connectionDataV4{})))
 			log.Errorf("v6 size %d", int(unsafe.Sizeof(connectionDataV6{})))
 			log.Errorf("ringbuffer read %d bytes: %v", len(rec.RawSample), rec.RawSample)
+
+
+			if len(rec.RawSample) != int(unsafe.Sizeof(connectionDataV4{}))-int(8) {
+				log.Errorf("wrong length %v of a msg, should be %v", len(rec.RawSample), int(unsafe.Sizeof(connectionDataV4{}))-int(8))
+				continue
+			}
+
 			connectType := binary.LittleEndian.Uint32(rec.RawSample)
 			originInfo := rec.RawSample[unsafe.Sizeof(connectType):]
 			buf := bytes.NewBuffer(originInfo)
 			switch connectType {
 			case constants.MSG_TYPE_IPV4:
 				data, err = buildV4Metric(buf, tcp_conns)
-				if err!= nil {
-					log.Errorf("get connection info failed: %v", err)
+
+				if err != nil {
+					log.Errorf("get connectionV4 info failed: %v", err)
 					continue
 				}
-				log.Errorf("Connection Data: %+v\n", data)
-
 			case constants.MSG_TYPE_IPV6:
 				data, err = buildV6Metric(buf, tcp_conns)
-				if err!= nil {
-					log.Errorf("get connection info failed: %v", err)
+				if err != nil {
+					log.Errorf("get connectionV6 info failed: %v", err)
 					continue
 				}
 			default:
@@ -420,6 +423,10 @@ func (m *MetricController) Run(ctx context.Context, mapOfTcpInfo *ebpf.Map) {
 
 			if m.EnableAccesslog.Load() {
 				OutputAccesslog(data, tcp_conns[data.currentConnId], accesslog)
+			}
+
+			if data.state == TCP_CLOSTED {
+				delete(tcp_conns, data.currentConnId)
 			}
 
 			m.mutex.Lock()
@@ -458,8 +465,12 @@ func buildV4Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 		data.origDstPort = connectData.OriginalPort
 	}
 
-	data.sentBytes = connectData.SentBytes - tcp_conns[connectData.ConnId].sentBytes
-	data.receivedBytes = connectData.ReceivedBytes - tcp_conns[connectData.ConnId].receivedBytes
+	if connectData.SentBytes > tcp_conns[connectData.ConnId].sentBytes {
+		data.sentBytes = connectData.SentBytes - tcp_conns[connectData.ConnId].sentBytes
+	}
+	if connectData.ReceivedBytes > tcp_conns[connectData.ConnId].receivedBytes {
+		data.receivedBytes = connectData.ReceivedBytes - tcp_conns[connectData.ConnId].receivedBytes
+	}
 	data.state = connectData.State
 	data.success = connectData.ConnectSuccess
 	data.duration = connectData.Duration
@@ -468,7 +479,7 @@ func buildV4Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 	data.srtt = connectData.statistics.SRttTime
 	data.minRtt = connectData.statistics.RttMin
 	data.totalRetrans = connectData.statistics.Retransmits - tcp_conns[connectData.ConnId].totalRetrans
-	data.PacketLost = connectData.statistics.LostPackets - tcp_conns[connectData.ConnId].packetLost
+	data.packetLost = connectData.statistics.LostPackets - tcp_conns[connectData.ConnId].packetLost
 	data.currentConnId = connectData.ConnId
 	tcp_conns[connectData.ConnId] = connMetric{
 		connId:        connectData.ConnId,
@@ -504,8 +515,12 @@ func buildV6Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 		data.origDstPort = connectData.OriginalPort
 	}
 
-	data.sentBytes = connectData.SentBytes - tcp_conns[connectData.ConnId].sentBytes
-	data.receivedBytes = connectData.ReceivedBytes - tcp_conns[connectData.ConnId].receivedBytes
+	if connectData.SentBytes > tcp_conns[connectData.ConnId].sentBytes {
+		data.sentBytes = connectData.SentBytes - tcp_conns[connectData.ConnId].sentBytes
+	}
+	if connectData.ReceivedBytes > tcp_conns[connectData.ConnId].receivedBytes {
+		data.receivedBytes = connectData.ReceivedBytes - tcp_conns[connectData.ConnId].receivedBytes
+	}
 	data.state = connectData.State
 	data.success = connectData.ConnectSuccess
 	data.duration = connectData.Duration
@@ -514,7 +529,7 @@ func buildV6Metric(buf *bytes.Buffer, tcp_conns map[uint64]connMetric) (requestM
 	data.srtt = connectData.statistics.SRttTime
 	data.minRtt = connectData.statistics.RttMin
 	data.totalRetrans = connectData.statistics.Retransmits - tcp_conns[connectData.ConnId].totalRetrans
-	data.PacketLost = connectData.statistics.LostPackets - tcp_conns[connectData.ConnId].packetLost
+	data.packetLost = connectData.statistics.LostPackets - tcp_conns[connectData.ConnId].packetLost
 	data.currentConnId = connectData.ConnId
 	tcp_conns[connectData.ConnId] = connMetric{
 		receivedBytes: connectData.ReceivedBytes,
@@ -691,7 +706,7 @@ func (m *MetricController) updateWorkloadMetricCache(data requestMetric, labels 
 		v.WorkloadConnReceivedBytes = v.WorkloadConnReceivedBytes + float64(data.receivedBytes)
 		v.WorkloadConnSentBytes = v.WorkloadConnSentBytes + float64(data.sentBytes)
 		v.WorkloadConnTotalRetrans = v.WorkloadConnTotalRetrans + float64(data.totalRetrans)
-		v.WorkloadConnPacketLost = v.WorkloadConnPacketLost + float64(data.PacketLost)
+		v.WorkloadConnPacketLost = v.WorkloadConnPacketLost + float64(data.packetLost)
 	} else {
 		newWorkloadMetricInfo := workloadMetricInfo{}
 		if data.state == TCP_ESTABLISHED {
@@ -706,7 +721,7 @@ func (m *MetricController) updateWorkloadMetricCache(data requestMetric, labels 
 		newWorkloadMetricInfo.WorkloadConnReceivedBytes = float64(data.receivedBytes)
 		newWorkloadMetricInfo.WorkloadConnSentBytes = float64(data.sentBytes)
 		newWorkloadMetricInfo.WorkloadConnTotalRetrans = float64(data.totalRetrans)
-		newWorkloadMetricInfo.WorkloadConnPacketLost = float64(data.PacketLost)
+		newWorkloadMetricInfo.WorkloadConnPacketLost = float64(data.packetLost)
 		m.workloadMetricCache[labels] = &newWorkloadMetricInfo
 	}
 }

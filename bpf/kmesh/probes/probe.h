@@ -16,7 +16,7 @@ static inline bool is_monitoring_enable()
 
 static inline void observe_on_pre_connect(struct bpf_sock *sk)
 {
-    struct sock_storage_data *storage = NULL;
+    struct tcp_probe_info *storage = NULL;
     if (!sk)
         return;
 
@@ -26,7 +26,7 @@ static inline void observe_on_pre_connect(struct bpf_sock *sk)
         return;
     }
 
-    storage->connect_ns = bpf_ktime_get_ns();
+    storage->start_ns = bpf_ktime_get_ns();
     return;
 }
 
@@ -37,7 +37,7 @@ static inline void observe_on_connect_established(struct bpf_sock *sk, __u64 soc
     }
 
     struct bpf_tcp_sock *tcp_sock = NULL;
-    struct sock_storage_data *storage = NULL;
+    struct tcp_probe_info *storage = NULL;
     __u64 flags = (direction == OUTBOUND) ? 0 : BPF_LOCAL_STORAGE_GET_F_CREATE;
 
     if (!sk)
@@ -53,13 +53,12 @@ static inline void observe_on_connect_established(struct bpf_sock *sk, __u64 soc
     }
 
     // INBOUND scenario
-    // bpf_printk("on connect: bpf_sk_storage_get success, %llu", sock_cookie);
-    storage->connect_ns = bpf_ktime_get_ns();
-    storage->direction = direction;
-    storage->connect_success = true;
-    storage->sock_cookie = sock_cookie;
-    // bpf_printk("Storage address: %px", storage);
 
+    if (direction == INBOUND)
+        storage->start_ns = bpf_ktime_get_ns();
+    storage->direction = direction;
+    storage->conn_success = true;
+    storage->conn_id = sock_cookie;
     record_report_tcp_conn_info(sk, tcp_sock, storage, BPF_TCP_ESTABLISHED);
 }
 
@@ -76,7 +75,7 @@ static inline void observe_on_status_change(struct bpf_sock *sk, __u32 state)
     }
 
     struct bpf_tcp_sock *tcp_sock = NULL;
-    struct sock_storage_data *storage = NULL;
+    struct tcp_probe_info *storage = NULL;
     if (!sk)
         return;
     tcp_sock = bpf_tcp_sock(sk);
@@ -102,7 +101,7 @@ static inline void observe_on_retransmit(struct bpf_sock *sk)
     if (!is_monitoring_enable()) {
         return;
     }
-    struct sock_storage_data *storage = NULL;
+    struct tcp_probe_info *storage = NULL;
     struct bpf_tcp_sock *tcp_sock = NULL;
     if (!sk)
         return;
@@ -113,6 +112,7 @@ static inline void observe_on_retransmit(struct bpf_sock *sk)
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
         bpf_printk("on retransmit: bpf_sk_storage_get failed\n");
+
         return;
     }
     refresh_tcp_conn_info_on_retransmit_rtt(tcp_sock, storage);
@@ -125,7 +125,7 @@ static inline void observe_on_rtt(struct bpf_sock *sk)
         return;
     }
 
-    struct sock_storage_data *storage = NULL;
+    struct tcp_probe_info *storage = NULL;
     struct bpf_tcp_sock *tcp_sock = NULL;
 
     if (!sk)
@@ -141,49 +141,42 @@ static inline void observe_on_rtt(struct bpf_sock *sk)
     refresh_tcp_conn_info_on_retransmit_rtt(tcp_sock, storage);
 }
 
-static inline void observe_on_send(struct bpf_sock *sk, __u32 size)
+static inline void observe_on_data(struct bpf_sock *sk, __u32 size, __u8 direction)
 {
+
     bpf_printk("observing on send");
    
-    struct sock_storage_data *storage = NULL;
 
+    struct tcp_probe_info *storage = NULL;
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
-        bpf_printk("on send: bpf_sk_storage_get failed\n");
         return;
     }
-    refresh_tcp_conn_info_on_send(storage, size);
+    refresh_tcp_conn_info_on_data(storage, size, direction);
 }
 
 static inline void report_after_threshold_tm(struct bpf_sock *sk)
 {
 
-    struct sock_storage_data *storage = NULL;
-
+    struct tcp_probe_info *storage = NULL;
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
-        bpf_printk("on report: bpf_sk_storage_get failed\n");
-        return;
-    }
-
-    struct tcp_probe_info *info_vals = bpf_map_lookup_elem(&map_of_tcp_conns, &storage->sock_cookie);
-    if (!info_vals) {
-        bpf_printk("on report: lookup in map_of_tcp_conns failed\n");
         return;
     }
 
     __u64 now = bpf_ktime_get_ns();
-    if ((now - info_vals->last_report_ns) > LONG_CONN_THRESHOLD_TIME) {
+    if ((now - storage->last_report_ns) > LONG_CONN_THRESHOLD_TIME) {
         struct tcp_probe_info *info = bpf_ringbuf_reserve(&map_of_tcp_probe, sizeof(struct tcp_probe_info), 0);
         if (!info) {
             bpf_printk("on report: bpf_ringbuf_reserve failed\n");
             return;
         }
 
-        info_vals->last_report_ns = now;
-        info_vals->duration = now - info_vals->start_ns;
-        __builtin_memcpy(info, info_vals, sizeof(struct tcp_probe_info));
+
         
+        storage->last_report_ns = now;
+        storage->duration = now - storage->start_ns;
+        __builtin_memcpy(info, storage, sizeof(struct tcp_probe_info));
         bpf_printk("Tcp time send threshold");
                 
         bpf_printk("conn_id %llu", info->conn_id);
