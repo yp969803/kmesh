@@ -198,7 +198,7 @@ refresh_tcp_conn_info_on_state_change(struct bpf_tcp_sock *tcp_sock, struct tcp_
     __u64 now = bpf_ktime_get_ns();
     storage->state = state;
     storage->duration = now - storage->start_ns;
-    storage->received_bytes = tcp_sock->bytes_received;
+    // storage->received_bytes = tcp_sock->bytes_received;
     storage->srtt_us = tcp_sock->srtt_us;
     storage->rtt_min = tcp_sock->rtt_min;
     storage->total_retrans = tcp_sock->total_retrans;
@@ -280,7 +280,7 @@ refresh_tcp_conn_info_on_retransmit_rtt(struct bpf_tcp_sock *tcp_sock, struct tc
 
     __u64 now = bpf_ktime_get_ns();
     storage->duration = now - storage->start_ns;
-    storage->received_bytes = tcp_sock->bytes_received;
+    // storage->received_bytes = tcp_sock->bytes_received;
     storage->srtt_us = tcp_sock->srtt_us;
     storage->rtt_min = tcp_sock->rtt_min;
     storage->total_retrans = tcp_sock->total_retrans;
