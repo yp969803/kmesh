@@ -43,11 +43,34 @@ type KmeshRecvmsgOperationUsageKey struct {
 	_             [4]byte
 }
 
-type KmeshRecvmsgSockStorageData struct {
-	ConnectNs      uint64
-	Direction      uint8
-	ConnectSuccess uint8
-	_              [6]byte
+type KmeshRecvmsgTcpProbeInfo struct {
+	Type    uint32
+	Tuple   KmeshRecvmsgBpfSockTuple
+	OrigDst struct {
+		Ipv4 struct {
+			Addr uint32
+			Port uint16
+			_    [2]byte
+		}
+		_ [12]byte
+	}
+	_             [4]byte
+	ConnId        uint64
+	SentBytes     uint32
+	ReceivedBytes uint32
+	ConnSuccess   uint32
+	Direction     uint32
+	State         uint32
+	_             [4]byte
+	Duration      uint64
+	StartNs       uint64
+	LastReportNs  uint64
+	Protocol      uint32
+	SrttUs        uint32
+	RttMin        uint32
+	TotalRetrans  uint32
+	LostOut       uint32
+	_             [4]byte
 }
 
 // LoadKmeshRecvmsg returns the embedded CollectionSpec for KmeshRecvmsg.

@@ -37,10 +37,11 @@ int recvmsg_prog(struct __sk_buff *skb)
     struct bpf_sock *sk = skb->sk;
     __u32 size = skb->len;
 
+    
     if (sk) {
         if (is_managed_by_kmesh_skb(skb)) {
-            observe_on_data(sk, size, RECV);
-            report_after_threshold_tm(sk);
+            // observe_on_data(sk, size, RECV);
+            // report_after_threshold_tm(sk);
         }
     } else {
         BPF_LOG(ERR, KMESH, "sk is nil\n");

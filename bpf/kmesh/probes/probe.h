@@ -144,8 +144,6 @@ static inline void observe_on_data(struct bpf_sock *sk, __u32 size, __u8 directi
 {
 
     bpf_printk("observing on send");
-   
-
     struct tcp_probe_info *storage = NULL;
     storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
     if (!storage) {
