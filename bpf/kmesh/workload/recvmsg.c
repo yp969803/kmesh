@@ -44,10 +44,14 @@ int recvmsg_prog(struct __sk_buff *skb)
         if (is_managed_by_kmesh_skb(skb)) {
             storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
 
-            struct bpf_tcp_sock *tcp_sock = bpf_tcp_sock(sk);
-            __u32 recieved_bytes = tcp_sock->bytes_received;
-            bpf_printk("recvmsg_prog, sk %p, size %u, sock_cookie %llu, recv_bytes %u\n", sk, size, sock_cookie,
-                     recieved_bytes);
+            struct bpf_tcp_sock *tcp_sock = NULL;
+            tcp_sock =  bpf_tcp_sock(sk);
+            if(tcp_sock) {
+                __u32 recieved_bytes = tcp_sock->bytes_received;
+                bpf_printk("recvmsg_prog, sk %p, size %u, sock_cookie %llu, recv_bytes %u\n", sk, size, sock_cookie,
+                         recieved_bytes);
+            }
+        
                      observe_on_data(sk, size, RECV);
                      report_after_threshold_tm(sk);
         }
