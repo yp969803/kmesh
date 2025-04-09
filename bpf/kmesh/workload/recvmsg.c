@@ -48,12 +48,17 @@ int recvmsg_prog(struct __sk_buff *skb)
             tcp_sock =  bpf_tcp_sock(sk);
             if(tcp_sock) {
                 __u32 recieved_bytes = tcp_sock->bytes_received;
-                bpf_printk("recvmsg_prog, sk %p, size %u, sock_cookie %llu, recv_bytes %u\n", sk, size, sock_cookie,
-                         recieved_bytes);
+                __u32 sent_bytes = tcp_sock->delivered;
+                __u32 packetlost = tcp_sock->lost_out;
+                __u32 retrans = tcp_sock->total_retrans;
+                __u32 rtt = tcp_sock->srtt_us;
+                
+                bpf_printk("recvmsg_prog, sk %p, size %u, sock_cookie %llu, recv_bytes %u sent_byte %u \n", sk, size, sock_cookie,
+                         recieved_bytes, sent_bytes);
             }
         
-                     observe_on_data(sk, size, RECV);
-                     report_after_threshold_tm(sk);
+            observe_on_data(sk, size, RECV);
+            report_after_threshold_tm(sk);
         }
     } else {
         BPF_LOG(ERR, KMESH, "sk is nil\n");
