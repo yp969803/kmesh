@@ -36,8 +36,10 @@ int recvmsg_prog(struct __sk_buff *skb)
 
     struct bpf_sock *sk = skb->sk;
     __u32 size = skb->len;
-
-    
+    __u64 sock_cookie = bpf_get_socket_cookie(skb);
+    struct tcp_probe_info *storage = NULL;
+    storage = bpf_sk_storage_get(&map_of_sock_storage, sk, 0, 0);
+     
     if (sk) {
         if (is_managed_by_kmesh_skb(skb)) {
             // observe_on_data(sk, size, RECV);
